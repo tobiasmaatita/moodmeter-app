@@ -19,9 +19,13 @@
     {% if entries %}
     <ul class="entry-list">
       {% for entry in entries %}
-      <li class="entry-card" style="border-left-color: {{ quadrants[entry.quadrant].color }};">
+      <li class="entry-card" style="border-left-color: {{ quadrants[entry.emotions[0].quadrant].color }};">
         <div class="entry-date">{{ entry.entry_date }}</div>
-        <div class="entry-emotion" style="color: {{ quadrants[entry.quadrant].color }};">{{ entry.emotion }}</div>
+        <div class="entry-emotions">
+          {% for item in entry.emotions %}
+          <span class="emotion-badge" style="background: {{ quadrants[item.quadrant].color }};">{{ item.emotion }}</span>
+          {% endfor %}
+        </div>
         {% if entry.note %}
         <div class="entry-note">{{ entry.note }}</div>
         {% endif %}
