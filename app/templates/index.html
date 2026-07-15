@@ -19,7 +19,7 @@
 
   <main>
     <p style="color: var(--muted); font-size: 0.85rem; margin-top: 0;">
-      {{ today }}{% if today_entry %} — je hebt vandaag al "{{ today_entry.emotion }}" ingevuld, dit overschrijft die keuze.{% endif %}
+      {{ today }}{% if today_emotions %} — je hebt vandaag al iets ingevuld, dit past die aan.{% endif %}
     </p>
 
     <section id="step-mood" class="step active">
@@ -42,7 +42,7 @@
         {% endfor %}
       </div>
 
-      <div class="selection-summary" id="selection-summary">Kies de emotie die het best past bij je dag.</div>
+      <div class="selection-summary" id="selection-summary">Kies één of meer emoties die bij je dag passen. Tik nog eens op een emotie om 'm te deselecteren.</div>
 
       <div class="actions">
         <button type="button" class="primary" id="next-btn" disabled>Volgende</button>
@@ -52,7 +52,7 @@
     <section id="step-note" class="step">
       <div class="selection-summary" id="selection-summary-2"></div>
       <p style="color: var(--muted);">Wat is er vandaag gebeurd?</p>
-      <textarea id="note" placeholder="Schrijf hier kort op wat er speelde..."></textarea>
+      <textarea id="note" placeholder="Schrijf hier kort op wat er speelde...">{{ today_note }}</textarea>
       <div class="actions">
         <button type="button" class="ghost" id="back-btn">Terug</button>
         <button type="button" class="primary" id="save-btn">Opslaan</button>
@@ -68,25 +68,62 @@
     </section>
   </main>
 
+  <script id="today-entry-data" type="application/json">{{ today_emotions_json | safe }}</script>
+
   <script>
-    let selectedQuadrant = null;
-    let selectedEmotion = null;
+    // selections: Map van "kwadrant|emotie" -> { quadrant, emotion }
+    const selections = new Map();
 
     const buttons = document.querySelectorAll(".emotion-btn");
     const nextBtn = document.getElementById("next-btn");
     const summary = document.getElementById("selection-summary");
     const summary2 = document.getElementById("selection-summary-2");
 
-    buttons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        buttons.forEach((b) => b.classList.remove("selected"));
+    function keyFor(quadrant, emotion) {
+      return quadrant + "|" + emotion;
+    }
+
+    function updateSummary() {
+      const labels = Array.from(selections.values()).map((s) => s.emotion);
+      if (labels.length === 0) {
+        summary.textContent = "Kies één of meer emoties die bij je dag passen. Tik nog eens op een emotie om 'm te deselecteren.";
+      } else {
+        summary.textContent = "Geselecteerd: " + labels.join(", ");
+      }
+      nextBtn.disabled = selections.size === 0;
+    }
+
+    function toggleButton(btn) {
+      const quadrant = btn.dataset.quadrant;
+      const emotion = btn.dataset.emotion;
+      const key = keyFor(quadrant, emotion);
+
+      if (selections.has(key)) {
+        selections.delete(key);
+        btn.classList.remove("selected");
+      } else {
+        selections.set(key, { quadrant, emotion });
         btn.classList.add("selected");
-        selectedQuadrant = btn.dataset.quadrant;
-        selectedEmotion = btn.dataset.emotion;
-        summary.textContent = "Geselecteerd: " + selectedEmotion;
-        nextBtn.disabled = false;
-      });
+      }
+      updateSummary();
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => toggleButton(btn));
     });
+
+    // Vandaag al ingevulde emoties vooraf selecteren.
+    try {
+      const todayData = JSON.parse(document.getElementById("today-entry-data").textContent || "[]");
+      todayData.forEach(({ quadrant, emotion }) => {
+        const btn = document.querySelector(
+          `.emotion-btn[data-quadrant="${CSS.escape(quadrant)}"][data-emotion="${CSS.escape(emotion)}"]`
+        );
+        if (btn) toggleButton(btn);
+      });
+    } catch (err) {
+      // geen eerdere selectie beschikbaar, negeren
+    }
 
     function showStep(id) {
       document.querySelectorAll(".step").forEach((s) => s.classList.remove("active"));
@@ -94,8 +131,9 @@
     }
 
     nextBtn.addEventListener("click", () => {
-      if (!selectedEmotion) return;
-      summary2.textContent = "Geselecteerd: " + selectedEmotion;
+      if (selections.size === 0) return;
+      const labels = Array.from(selections.values()).map((s) => s.emotion);
+      summary2.textContent = "Geselecteerd: " + labels.join(", ");
       showStep("step-note");
     });
 
@@ -114,8 +152,7 @@
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
-            quadrant: selectedQuadrant,
-            emotion: selectedEmotion,
+            emotions: JSON.stringify(Array.from(selections.values())),
             note: note,
           }),
         });
