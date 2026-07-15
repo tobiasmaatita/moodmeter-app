@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>MoodMeter — Geschiedenis</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="apple-touch-icon" href="/static/icon-192.png" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Geschiedenis</h1>
+    <a href="/">Terug</a>
+  </header>
+
+  <main>
+    {% if entries %}
+    <ul class="entry-list">
+      {% for entry in entries %}
+      <li class="entry-card" style="border-left-color: {{ quadrants[entry.quadrant].color }};">
+        <div class="entry-date">{{ entry.entry_date }}</div>
+        <div class="entry-emotion" style="color: {{ quadrants[entry.quadrant].color }};">{{ entry.emotion }}</div>
+        {% if entry.note %}
+        <div class="entry-note">{{ entry.note }}</div>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state">Nog geen check-ins. Ga naar het homescreen om je eerste mood in te vullen.</div>
+    {% endif %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>MoodMeter</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="apple-touch-icon" href="/static/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>MoodMeter</h1>
+    <a href="/history">Geschiedenis</a>
+  </header>
+
+  <main>
+    <p style="color: var(--muted); font-size: 0.85rem; margin-top: 0;">
+      {{ today }}{% if today_entry %} — je hebt vandaag al "{{ today_entry.emotion }}" ingevuld, dit overschrijft die keuze.{% endif %}
+    </p>
+
+    <section id="step-mood" class="step active">
+      <div class="moodmeter">
+        {% for key, q in quadrants.items() %}
+        <div class="quadrant" style="background: {{ q.color }}33;">
+          <h2 style="color: {{ q.color }};">{{ q.label }}</h2>
+          <div class="emotion-grid">
+            {% for emotion in q.emotions %}
+            <button
+              type="button"
+              class="emotion-btn"
+              style="background: {{ q.color }};"
+              data-quadrant="{{ key }}"
+              data-emotion="{{ emotion }}"
+            >{{ emotion }}</button>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="selection-summary" id="selection-summary">Kies de emotie die het best past bij je dag.</div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="next-btn" disabled>Volgende</button>
+      </div>
+    </section>
+
+    <section id="step-note" class="step">
+      <div class="selection-summary" id="selection-summary-2"></div>
+      <p style="color: var(--muted);">Wat is er vandaag gebeurd?</p>
+      <textarea id="note" placeholder="Schrijf hier kort op wat er speelde..."></textarea>
+      <div class="actions">
+        <button type="button" class="ghost" id="back-btn">Terug</button>
+        <button type="button" class="primary" id="save-btn">Opslaan</button>
+      </div>
+    </section>
+
+    <section id="step-done" class="step">
+      <div class="confirmation">
+        <p style="font-size: 2rem; margin: 0;">✓</p>
+        <p>Opgeslagen voor {{ today }}.</p>
+        <a href="/history" style="color: var(--accent);">Bekijk je geschiedenis</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let selectedQuadrant = null;
+    let selectedEmotion = null;
+
+    const buttons = document.querySelectorAll(".emotion-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const summary = document.getElementById("selection-summary");
+    const summary2 = document.getElementById("selection-summary-2");
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        buttons.forEach((b) => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedQuadrant = btn.dataset.quadrant;
+        selectedEmotion = btn.dataset.emotion;
+        summary.textContent = "Geselecteerd: " + selectedEmotion;
+        nextBtn.disabled = false;
+      });
+    });
+
+    function showStep(id) {
+      document.querySelectorAll(".step").forEach((s) => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
+
+    nextBtn.addEventListener("click", () => {
+      if (!selectedEmotion) return;
+      summary2.textContent = "Geselecteerd: " + selectedEmotion;
+      showStep("step-note");
+    });
+
+    document.getElementById("back-btn").addEventListener("click", () => {
+      showStep("step-mood");
+    });
+
+    document.getElementById("save-btn").addEventListener("click", async () => {
+      const note = document.getElementById("note").value;
+      const saveBtn = document.getElementById("save-btn");
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Bezig...";
+
+      try {
+        const res = await fetch("/entries", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            quadrant: selectedQuadrant,
+            emotion: selectedEmotion,
+            note: note,
+          }),
+        });
+        if (!res.ok) throw new Error("Opslaan mislukt");
+        showStep("step-done");
+      } catch (err) {
+        alert("Er ging iets mis bij het opslaan. Probeer het opnieuw.");
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Opslaan";
+      }
+    });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/static/sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>
