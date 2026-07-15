@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>MoodMeter</title>
+  <title>MoodMeter{% if not is_today %} — {{ entry_date_label }}{% endif %}</title>
   <link rel="manifest" href="/static/manifest.json" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,12 +14,13 @@
 <body>
   <header>
     <h1>MoodMeter</h1>
-    <a href="/history">Geschiedenis</a>
   </header>
+
+  {% include "_nav.html" %}
 
   <main>
     <p style="color: var(--muted); font-size: 0.85rem; margin-top: 0;">
-      {{ today }}{% if today_emotions %} — je hebt vandaag al iets ingevuld, dit past die aan.{% endif %}
+      {{ entry_date_label }}{% if existing_emotions %} — er staat al iets voor deze dag ingevuld, dit past die aan.{% endif %}
     </p>
 
     <section id="step-mood" class="step active">
@@ -42,7 +43,7 @@
         {% endfor %}
       </div>
 
-      <div class="selection-summary" id="selection-summary">Kies één of meer emoties die bij je dag passen. Tik nog eens op een emotie om 'm te deselecteren.</div>
+      <div class="selection-summary" id="selection-summary">Kies één of meer emoties die bij deze dag passen. Tik nog eens op een emotie om 'm te deselecteren.</div>
 
       <div class="actions">
         <button type="button" class="primary" id="next-btn" disabled>Volgende</button>
@@ -51,8 +52,8 @@
 
     <section id="step-note" class="step">
       <div class="selection-summary" id="selection-summary-2"></div>
-      <p style="color: var(--muted);">Wat is er vandaag gebeurd?</p>
-      <textarea id="note" placeholder="Schrijf hier kort op wat er speelde...">{{ today_note }}</textarea>
+      <p style="color: var(--muted);">Wat is er die dag gebeurd?</p>
+      <textarea id="note" placeholder="Schrijf hier kort op wat er speelde...">{{ existing_note }}</textarea>
       <div class="actions">
         <button type="button" class="ghost" id="back-btn">Terug</button>
         <button type="button" class="primary" id="save-btn">Opslaan</button>
@@ -62,15 +63,22 @@
     <section id="step-done" class="step">
       <div class="confirmation">
         <p style="font-size: 2rem; margin: 0;">✓</p>
-        <p>Opgeslagen voor {{ today }}.</p>
+        <p>Opgeslagen voor {{ entry_date_label }}.</p>
+        {% if is_today %}
         <a href="/history" style="color: var(--accent);">Bekijk je geschiedenis</a>
+        {% else %}
+        <a href="/calendar" style="color: var(--accent);">Terug naar kalender</a>
+        {% endif %}
       </div>
     </section>
   </main>
 
-  <script id="today-entry-data" type="application/json">{{ today_emotions_json | safe }}</script>
+  <script id="entry-date-data" type="application/json">{{ entry_date_json | safe }}</script>
+  <script id="existing-entry-data" type="application/json">{{ existing_emotions_json | safe }}</script>
 
   <script>
+    const entryDate = JSON.parse(document.getElementById("entry-date-data").textContent);
+
     // selections: Map van "kwadrant|emotie" -> { quadrant, emotion }
     const selections = new Map();
 
@@ -86,7 +94,7 @@
     function updateSummary() {
       const labels = Array.from(selections.values()).map((s) => s.emotion);
       if (labels.length === 0) {
-        summary.textContent = "Kies één of meer emoties die bij je dag passen. Tik nog eens op een emotie om 'm te deselecteren.";
+        summary.textContent = "Kies één of meer emoties die bij deze dag passen. Tik nog eens op een emotie om 'm te deselecteren.";
       } else {
         summary.textContent = "Geselecteerd: " + labels.join(", ");
       }
@@ -112,10 +120,10 @@
       btn.addEventListener("click", () => toggleButton(btn));
     });
 
-    // Vandaag al ingevulde emoties vooraf selecteren.
+    // Eerder ingevulde emoties voor deze dag vooraf selecteren.
     try {
-      const todayData = JSON.parse(document.getElementById("today-entry-data").textContent || "[]");
-      todayData.forEach(({ quadrant, emotion }) => {
+      const existingData = JSON.parse(document.getElementById("existing-entry-data").textContent || "[]");
+      existingData.forEach(({ quadrant, emotion }) => {
         const btn = document.querySelector(
           `.emotion-btn[data-quadrant="${CSS.escape(quadrant)}"][data-emotion="${CSS.escape(emotion)}"]`
         );
@@ -152,6 +160,7 @@
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
+            date: entryDate,
             emotions: JSON.stringify(Array.from(selections.values())),
             note: note,
           }),
