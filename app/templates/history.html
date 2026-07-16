@@ -22,7 +22,7 @@
     {% if entries %}
     <ul class="entry-list">
       {% for entry in entries %}
-      <li class="entry-card" style="border-left-color: {{ quadrants[entry.emotions[0].quadrant].color }};">
+      <li class="entry-card" style="border-left-color: {{ quadrants[entry.emotions[0].quadrant].color if entry.emotions else 'var(--accent)' }};">
         <a class="entry-date" href="/day/{{ entry.entry_date }}">{{ entry.entry_date }}</a>
         <div class="entry-emotions">
           {% for item in entry.emotions %}

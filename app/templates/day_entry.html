@@ -23,39 +23,63 @@
       {{ entry_date_label }}{% if existing_emotions %} — er staat al iets voor deze dag ingevuld, dit past die aan.{% endif %}
     </p>
 
-    <section id="step-mood" class="step active">
-      <div class="moodmeter">
+    <section id="step-quadrants" class="step active">
+      <p class="hint">Kies een kwadrant en selecteer de emoties die bij je dag passen. Je kunt uit meerdere kwadranten kiezen.</p>
+
+      <div class="quadrant-tiles">
         {% for key, q in quadrants.items() %}
-        <div class="quadrant" style="background: {{ q.color }}33;">
-          <h2 style="color: {{ q.color }};">{{ q.label }}</h2>
-          <div class="emotion-grid">
-            {% for emotion in q.emotions %}
-            <button
-              type="button"
-              class="emotion-btn"
-              style="background: {{ q.color }};"
-              data-quadrant="{{ key }}"
-              data-emotion="{{ emotion }}"
-            >{{ emotion }}</button>
-            {% endfor %}
-          </div>
-        </div>
+        <button
+          type="button"
+          class="quadrant-tile"
+          style="background: {{ q.color }}22; border-color: {{ q.color }};"
+          data-open-quadrant="{{ key }}"
+        >
+          <span class="quadrant-tile-label" style="color: {{ q.color }};">{{ q.label }}</span>
+          <span class="quadrant-tile-desc">{{ q.description }}</span>
+          <span class="quadrant-tile-count" id="count-{{ key }}" style="background: {{ q.color }};" hidden>0</span>
+        </button>
         {% endfor %}
       </div>
 
-      <div class="selection-summary" id="selection-summary">Kies één of meer emoties die bij deze dag passen. Tik nog eens op een emotie om 'm te deselecteren.</div>
+      <div class="selection-summary" id="selection-summary">
+        <span id="selection-summary-text">Nog geen emoties gekozen.</span>
+        <div class="chip-list" id="chip-list"></div>
+      </div>
 
       <div class="actions">
         <button type="button" class="primary" id="next-btn" disabled>Volgende</button>
       </div>
     </section>
 
+    {% for key, q in quadrants.items() %}
+    <section id="step-quadrant-{{ key }}" class="step quadrant-detail">
+      <button type="button" class="ghost back-to-quadrants">&larr; Terug naar kwadranten</button>
+      <h2 style="color: {{ q.color }};">{{ q.label }} <span class="quadrant-tile-desc">— {{ q.description }}</span></h2>
+
+      <div class="emotion-grid">
+        {% for row in q.grid %}
+          {% for cell in row %}
+          <button
+            type="button"
+            class="emotion-btn"
+            style="background: {{ cell.bg }}; color: {{ cell.text }};"
+            data-quadrant="{{ key }}"
+            data-emotion="{{ cell.name }}"
+          >{{ cell.name }}</button>
+          {% endfor %}
+        {% endfor %}
+      </div>
+
+      <button type="button" class="ghost back-to-quadrants">&larr; Terug naar kwadranten</button>
+    </section>
+    {% endfor %}
+
     <section id="step-note" class="step">
+      <button type="button" class="ghost" id="back-to-quadrants-from-note">&larr; Terug naar kwadranten</button>
       <div class="selection-summary" id="selection-summary-2"></div>
       <p style="color: var(--muted);">Wat is er die dag gebeurd?</p>
       <textarea id="note" placeholder="Schrijf hier kort op wat er speelde...">{{ existing_note }}</textarea>
       <div class="actions">
-        <button type="button" class="ghost" id="back-btn">Terug</button>
         <button type="button" class="primary" id="save-btn">Opslaan</button>
       </div>
     </section>
@@ -79,55 +103,90 @@
   <script>
     const entryDate = JSON.parse(document.getElementById("entry-date-data").textContent);
 
-    // selections: Map van "kwadrant|emotie" -> { quadrant, emotion }
-    const selections = new Map();
+    // { quadrant: { emotion: true } }
+    const selected = {};
 
-    const buttons = document.querySelectorAll(".emotion-btn");
+    const quadrantTiles = document.querySelectorAll("[data-open-quadrant]");
+    const emotionButtons = document.querySelectorAll(".emotion-btn");
     const nextBtn = document.getElementById("next-btn");
-    const summary = document.getElementById("selection-summary");
+    const summaryText = document.getElementById("selection-summary-text");
+    const chipList = document.getElementById("chip-list");
     const summary2 = document.getElementById("selection-summary-2");
 
-    function keyFor(quadrant, emotion) {
-      return quadrant + "|" + emotion;
+    function totalSelected() {
+      return Object.values(selected).reduce((sum, emos) => sum + Object.keys(emos).length, 0);
     }
 
-    function updateSummary() {
-      const labels = Array.from(selections.values()).map((s) => s.emotion);
-      if (labels.length === 0) {
-        summary.textContent = "Kies één of meer emoties die bij deze dag passen. Tik nog eens op een emotie om 'm te deselecteren.";
+    function isSelected(quadrant, emotion) {
+      return !!(selected[quadrant] && selected[quadrant][emotion]);
+    }
+
+    function toggleSelection(quadrant, emotion) {
+      if (!selected[quadrant]) selected[quadrant] = {};
+      if (selected[quadrant][emotion]) {
+        delete selected[quadrant][emotion];
       } else {
-        summary.textContent = "Geselecteerd: " + labels.join(", ");
+        selected[quadrant][emotion] = true;
       }
-      nextBtn.disabled = selections.size === 0;
+      renderState();
     }
 
-    function toggleButton(btn) {
-      const quadrant = btn.dataset.quadrant;
-      const emotion = btn.dataset.emotion;
-      const key = keyFor(quadrant, emotion);
+    function renderState() {
+      // Sync emotion buttons (across all quadrant pages, even hidden ones)
+      emotionButtons.forEach((btn) => {
+        const on = isSelected(btn.dataset.quadrant, btn.dataset.emotion);
+        btn.classList.toggle("selected", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
 
-      if (selections.has(key)) {
-        selections.delete(key);
-        btn.classList.remove("selected");
-      } else {
-        selections.set(key, { quadrant, emotion });
-        btn.classList.add("selected");
-      }
-      updateSummary();
+      // Sync quadrant tile counts
+      quadrantTiles.forEach((tile) => {
+        const key = tile.dataset.openQuadrant;
+        const count = selected[key] ? Object.keys(selected[key]).length : 0;
+        const badge = document.getElementById("count-" + key);
+        badge.textContent = count;
+        badge.hidden = count === 0;
+        tile.classList.toggle("has-selection", count > 0);
+      });
+
+      // Summary chips
+      const chips = [];
+      Object.keys(selected).forEach((quadrant) => {
+        Object.keys(selected[quadrant]).forEach((emotion) => {
+          chips.push({ quadrant, emotion });
+        });
+      });
+
+      chipList.innerHTML = "";
+      chips.forEach(({ quadrant, emotion }) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip";
+        chip.textContent = emotion + " ✕";
+        chip.addEventListener("click", () => toggleSelection(quadrant, emotion));
+        chipList.appendChild(chip);
+      });
+
+      const total = totalSelected();
+      summaryText.textContent = total === 0
+        ? "Nog geen emoties gekozen."
+        : total + " emotie" + (total === 1 ? "" : "s") + " geselecteerd:";
+      nextBtn.disabled = total === 0;
+      summary2.textContent = summaryText.textContent;
     }
 
-    buttons.forEach((btn) => {
-      btn.addEventListener("click", () => toggleButton(btn));
+    emotionButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        toggleSelection(btn.dataset.quadrant, btn.dataset.emotion);
+      });
     });
 
     // Eerder ingevulde emoties voor deze dag vooraf selecteren.
     try {
       const existingData = JSON.parse(document.getElementById("existing-entry-data").textContent || "[]");
       existingData.forEach(({ quadrant, emotion }) => {
-        const btn = document.querySelector(
-          `.emotion-btn[data-quadrant="${CSS.escape(quadrant)}"][data-emotion="${CSS.escape(emotion)}"]`
-        );
-        if (btn) toggleButton(btn);
+        if (!selected[quadrant]) selected[quadrant] = {};
+        selected[quadrant][emotion] = true;
       });
     } catch (err) {
       // geen eerdere selectie beschikbaar, negeren
@@ -138,15 +197,23 @@
       document.getElementById(id).classList.add("active");
     }
 
-    nextBtn.addEventListener("click", () => {
-      if (selections.size === 0) return;
-      const labels = Array.from(selections.values()).map((s) => s.emotion);
-      summary2.textContent = "Geselecteerd: " + labels.join(", ");
-      showStep("step-note");
+    quadrantTiles.forEach((tile) => {
+      tile.addEventListener("click", () => {
+        showStep("step-quadrant-" + tile.dataset.openQuadrant);
+      });
     });
 
-    document.getElementById("back-btn").addEventListener("click", () => {
-      showStep("step-mood");
+    document.querySelectorAll(".back-to-quadrants").forEach((btn) => {
+      btn.addEventListener("click", () => showStep("step-quadrants"));
+    });
+
+    document.getElementById("back-to-quadrants-from-note").addEventListener("click", () => {
+      showStep("step-quadrants");
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (totalSelected() === 0) return;
+      showStep("step-note");
     });
 
     document.getElementById("save-btn").addEventListener("click", async () => {
@@ -155,13 +222,20 @@
       saveBtn.disabled = true;
       saveBtn.textContent = "Bezig...";
 
+      const emotionsPayload = [];
+      Object.keys(selected).forEach((quadrant) => {
+        Object.keys(selected[quadrant]).forEach((emotion) => {
+          emotionsPayload.push({ quadrant, emotion });
+        });
+      });
+
       try {
         const res = await fetch("/entries", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({
             date: entryDate,
-            emotions: JSON.stringify(Array.from(selections.values())),
+            emotions: JSON.stringify(emotionsPayload),
             note: note,
           }),
         });
@@ -173,6 +247,8 @@
         saveBtn.textContent = "Opslaan";
       }
     });
+
+    renderState();
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/static/sw.js").catch(() => {});

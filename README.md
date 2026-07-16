@@ -1,8 +1,10 @@
 # MoodMeter-app
 
 Persoonlijke dagelijkse mood-check-in app, gebaseerd op de MoodMeter (RULER / Yale Center for
-Emotional Intelligence). Kies elke dag een emotie in de 2x2-grid (energie x pleasantness),
-schrijf er kort bij wat er speelde, en bekijk je geschiedenis terug.
+Emotional Intelligence). Kies elke dag één of meerdere emoties uit de vier kwadranten (energie x
+pleasantness) — elk kwadrant heeft een eigen 5x5-raster van emoties, en je kunt tussen kwadranten
+schakelen zonder eerder gemaakte keuzes te verliezen. Schrijf er kort bij wat er speelde, en bekijk
+je geschiedenis terug.
 
 ## Lokaal draaien
 
@@ -68,15 +70,20 @@ probleem — je opent de app toch maar een keer per dag.
 
 ## Structuur
 
-- `app/main.py` — FastAPI-routes (`/`, `/entries`, `/history`)
-- `app/db.py` — database-tabel en upsert-logica (SQLite lokaal, Postgres in productie)
-- `app/moodmeter_data.py` — de kwadranten en emotiewoorden van de MoodMeter
-- `app/templates/` — `index.html` (homescreen) en `history.html` (geschiedenis)
+- `app/main.py` — FastAPI-routes (`/`, `/day/{date}`, `/entries`, `/history`, `/calendar`)
+- `app/db.py` — databasetabel en upsert-logica (SQLite lokaal, Postgres in productie); een
+  check-in (`mood_entries`) heeft een `emotions`-kolom (JSON-lijst van `{quadrant, emotion}`) zodat
+  één dag meerdere emoties kan bevatten
+- `app/moodmeter_data.py` — de kwadranten en het 5x5-emotieraster van de MoodMeter, overgenomen uit
+  `moodmeter-template/`
+- `app/templates/` — `day_entry.html` (kwadrant-overzicht + per-kwadrant selectie, voor vandaag én
+  eerdere dagen), `calendar.html`, `history.html` en de gedeelde `_nav.html`
 - `app/static/` — CSS, PWA-manifest, service worker, app-iconen
 
 ## Uitbreiden
 
-- De emotiewoorden in `app/moodmeter_data.py` zijn een vereenvoudigde, courante set. Heb je een
-  specifieke MoodMeter-woordenlijst die je liever gebruikt, pas dan gewoon die lijst aan.
+- De emotiewoorden en kleuren in `app/moodmeter_data.py` komen uit `moodmeter-template/`. Wil je
+  ze aanpassen, pas dan het `QUADRANTS`-dict aan (elk kwadrant heeft een 5x5 `grid` van
+  `{name, bg, text}`-cellen).
 - Momenteel is er geen login — de app gaat ervan uit dat alleen jij de URL kent. Wil je dat
   afschermen, dan is een simpele wachtwoordcode (HTTP basic auth) een kleine toevoeging.

@@ -87,47 +87,93 @@ main {
   display: block;
 }
 
-.moodmeter {
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 0.8rem 0;
+}
+
+.quadrant-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: clamp(0.4rem, 2vw, 0.6rem);
 }
 
-.quadrant {
+.quadrant-tile {
+  position: relative;
   border-radius: 16px;
-  padding: clamp(0.5rem, 2.5vw, 0.7rem);
+  border: 1.5px solid;
+  padding: clamp(0.7rem, 3vw, 0.9rem) clamp(0.6rem, 2.5vw, 0.8rem);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
   min-width: 0;
+  min-height: 90px;
 }
 
-.quadrant h2 {
-  font-size: clamp(0.7rem, 2.8vw, 0.8rem);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 0 0 0.5rem 0;
-  opacity: 0.85;
+.quadrant-tile.has-selection {
+  outline: 2px solid var(--text);
+}
+
+.quadrant-tile-label {
+  font-weight: 700;
+  font-size: clamp(0.88rem, 3.4vw, 1rem);
+}
+
+.quadrant-tile-desc {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.quadrant-tile-count {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.3rem;
+}
+
+.quadrant-tile-count[hidden] {
+  display: none;
+}
+
+.quadrant-detail h2 {
+  font-size: 1.1rem;
+  margin: 0.8rem 0 0.6rem 0;
 }
 
 .emotion-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(0.25rem, 1.5vw, 0.35rem);
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(0.2rem, 1.2vw, 0.3rem);
 }
 
 .emotion-btn {
   border: none;
-  border-radius: 10px;
-  padding: 0.5rem 0.3rem;
-  font-size: clamp(0.68rem, 2.6vw, 0.78rem);
-  background: rgba(0, 0, 0, 0.18);
-  color: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 0.2rem;
+  font-size: clamp(0.58rem, 2.3vw, 0.68rem);
   cursor: pointer;
   line-height: 1.15;
   min-width: 0;
-  width: 100%;
+  min-height: 3rem;
 }
 
 .emotion-btn.selected {
-  outline: 3px solid #fff;
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
   font-weight: 700;
 }
 
@@ -137,6 +183,23 @@ main {
   border-radius: 12px;
   background: var(--card-bg);
   min-height: 1.2rem;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.chip {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid #333;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  cursor: pointer;
 }
 
 textarea {
@@ -182,6 +245,11 @@ button.ghost {
   padding: 0.7rem 1.4rem;
   font-size: 1rem;
   cursor: pointer;
+}
+
+.quadrant-detail > button.ghost,
+#back-to-quadrants-from-note {
+  margin-bottom: 0.6rem;
 }
 
 .confirmation {
