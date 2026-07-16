@@ -12,3 +12,6 @@ wheels/
 # Lokale database + secrets
 *.db
 .env
+
+# macOS
+.DS_Store

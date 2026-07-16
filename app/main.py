@@ -11,9 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app import db
-from app.moodmeter_data import QUADRANTS
+from app.moodmeter_data import QUADRANTS, all_emotions_by_quadrant
 
 BASE_DIR = Path(__file__).resolve().parent
+VALID_EMOTIONS = all_emotions_by_quadrant()
 
 MONTHS_NL = [
     "januari", "februari", "maart", "april", "mei", "juni",
@@ -111,7 +112,7 @@ def create_entry(
             return JSONResponse({"error": "Ongeldige emotieselectie"}, status_code=400)
         quadrant = item.get("quadrant")
         emotion = item.get("emotion")
-        if quadrant not in QUADRANTS or emotion not in QUADRANTS[quadrant]["emotions"]:
+        if quadrant not in QUADRANTS or emotion not in VALID_EMOTIONS.get(quadrant, []):
             return JSONResponse({"error": "Onbekende emotie"}, status_code=400)
         key = (quadrant, emotion)
         if key in seen:
