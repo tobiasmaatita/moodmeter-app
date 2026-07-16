@@ -6,21 +6,24 @@
   <title>MoodMeter — Geschiedenis</title>
   <link rel="manifest" href="/static/manifest.json" />
   <link rel="apple-touch-icon" href="/static/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0f1115" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <header>
-    <h1>Geschiedenis</h1>
-    <a href="/">Terug</a>
+    <h1>MoodMeter</h1>
   </header>
+
+  {% include "_nav.html" %}
 
   <main>
     {% if entries %}
     <ul class="entry-list">
       {% for entry in entries %}
       <li class="entry-card" style="border-left-color: {{ quadrants[entry.emotions[0].quadrant].color }};">
-        <div class="entry-date">{{ entry.entry_date }}</div>
+        <a class="entry-date" href="/day/{{ entry.entry_date }}">{{ entry.entry_date }}</a>
         <div class="entry-emotions">
           {% for item in entry.emotions %}
           <span class="emotion-badge" style="background: {{ quadrants[item.quadrant].color }};">{{ item.emotion }}</span>

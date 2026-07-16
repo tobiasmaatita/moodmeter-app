@@ -126,3 +126,16 @@ def get_entry_for_date(entry_date: dt.date) -> dict | None:
             select(mood_entries).where(mood_entries.c.entry_date == entry_date)
         ).mappings().first()
     return dict(row) if row else None
+
+
+def get_dates_with_entries(year: int, month: int) -> set[dt.date]:
+    start = dt.date(year, month, 1)
+    end = dt.date(year + 1, 1, 1) if month == 12 else dt.date(year, month + 1, 1)
+    with engine.connect() as conn:
+        rows = conn.execute(
+            select(mood_entries.c.entry_date).where(
+                mood_entries.c.entry_date >= start,
+                mood_entries.c.entry_date < end,
+            )
+        ).all()
+    return {row[0] for row in rows}

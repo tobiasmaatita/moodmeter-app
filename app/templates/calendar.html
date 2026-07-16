@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>MoodMeter — Kalender</title>
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="apple-touch-icon" href="/static/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>MoodMeter</h1>
+  </header>
+
+  {% include "_nav.html" %}
+
+  <main>
+    <div class="calendar-header">
+      <a href="/calendar?month={{ prev_month }}" class="cal-nav-btn" aria-label="Vorige maand">‹</a>
+      <h2>{{ month_label }}</h2>
+      {% if next_disabled %}
+      <span class="cal-nav-btn disabled" aria-hidden="true">›</span>
+      {% else %}
+      <a href="/calendar?month={{ next_month }}" class="cal-nav-btn" aria-label="Volgende maand">›</a>
+      {% endif %}
+    </div>
+
+    <div class="calendar-grid">
+      {% for label in weekday_labels %}
+      <div class="cal-weekday">{{ label }}</div>
+      {% endfor %}
+
+      {% for week in weeks %}
+        {% for day in week %}
+          {% if day.month != current_month %}
+          <div class="cal-day outside"></div>
+          {% elif day > today %}
+          <div class="cal-day future">{{ day.day }}</div>
+          {% else %}
+          <a
+            href="/day/{{ day.isoformat() }}"
+            class="cal-day{% if day == today %} today{% endif %}{% if day in filled_dates %} filled{% endif %}"
+          >{{ day.day }}</a>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    <div class="calendar-legend">
+      <span><i class="legend-dot filled"></i> ingevuld</span>
+      <span><i class="legend-dot"></i> nog niet ingevuld</span>
+      <span><i class="legend-dot today"></i> vandaag</span>
+    </div>
+  </main>
+</body>
+</html>
